@@ -373,7 +373,7 @@
       <div class="row2">
         <div class="field">
           <label>Nome / descrição do produto <span class="req">*</span></label>
-          <input type="text" class="f-nome" placeholder="Ex.: Luminária de LED decorativa">
+          <input type="text" class="f-nome" required placeholder="Ex.: Luminária de LED decorativa">
         </div>
         <div class="field">
           <label>NCM <span class="u">(se souber)</span></label>
@@ -544,6 +544,16 @@
   $('sheetBtn').addEventListener('click', function(){
     if(!SHEETS_WEBHOOK_URL){
       showToast('Envio ainda não configurado (SHEETS_WEBHOOK_URL vazio).');
+      return;
+    }
+    const formEmpresa = document.getElementById('formEmpresa');
+    const formProdutos = document.getElementById('formProdutos');
+    if(!itemsWrap.querySelector('.item-card')){
+      showToast('Adicione ao menos um produto antes de enviar.');
+      return;
+    }
+    if(!formEmpresa.reportValidity() || !formProdutos.reportValidity()){
+      showToast('Preencha os campos obrigatórios (*) antes de enviar.');
       return;
     }
     const btn = $('sheetBtn');
