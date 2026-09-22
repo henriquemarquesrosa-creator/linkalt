@@ -322,7 +322,11 @@
     <div class="card-b">
       <div class="out" id="resumoOut">Preencha os campos acima — o resumo aparece aqui.</div>
       <div class="actions">
-        <button class="btn btn-primary" id="copyBtn" type="button">
+        <button class="btn btn-primary" id="sheetBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+          Salvar na planilha
+        </button>
+        <button class="btn btn-ghost" id="copyBtn" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copiar resumo
         </button>
@@ -340,8 +344,9 @@
         </button>
       </div>
       <div class="note">
-        Este formulário não tem backend — os dados só saem do navegador do cliente quando ele clica
-        em copiar, enviar e-mail ou WhatsApp.
+        "Salvar na planilha" envia os dados direto para a Google Sheets da Linkalt (veja
+        <code>SHEETS_WEBHOOK_URL</code> no início do script). Os demais botões não têm backend — só saem
+        do navegador do cliente quando ele clica em copiar, enviar e-mail ou WhatsApp.
       </div>
     </div>
   </div>
@@ -360,6 +365,9 @@
   // ---- ajuste estes dois valores para os contatos reais da Linkalt ----
   const LINKALT_EMAIL = "comercial@linkalt.com.br";
   const LINKALT_WHATSAPP = "5516997144581"; // formato internacional, só dígitos
+  // cole aqui a URL do Web App do Google Apps Script (veja instruções no README) para
+  // habilitar o botão "Salvar na planilha"; deixe vazio para desativar esse botão.
+  const SHEETS_WEBHOOK_URL = "";
 
   const themeBtn = document.getElementById('themeBtn');
   function applyTheme(t){
@@ -471,6 +479,29 @@
     return value ? (label + ': ' + value) : null;
   }
 
+  function buildProdutosTexto(){
+    const l = [];
+    const cards = itemsWrap.querySelectorAll('.item-card');
+    if(!cards.length){
+      l.push('(nenhum produto adicionado)');
+    }
+    cards.forEach(function(card, i){
+      const g = (cls) => card.querySelector(cls).value;
+      if(i > 0) l.push('');
+      l.push((i+1) + '. ' + (g('.f-nome') || '(sem nome)'));
+      [
+        line('   NCM', g('.f-ncm')),
+        line('   Quantidade', g('.f-qtd')),
+        line('   Valor unitário (US$)', g('.f-valor')),
+        line('   Peso/dimensões', g('.f-peso')),
+        line('   Especificação', g('.f-spec')),
+        line('   Fornecedor', g('.f-fornecedor')),
+        line('   Finalidade', g('.f-finalidade')),
+      ].filter(Boolean).forEach(t => l.push(t));
+    });
+    return l.join('\n');
+  }
+
   function buildResumo(){
     const l = [];
     l.push('*FORMULÁRIO LINKALT — DADOS DO CLIENTE*');
@@ -505,24 +536,8 @@
 
     l.push('');
     l.push('*PRODUTOS A IMPORTAR* (até 5 por simulação)');
-    const cards = itemsWrap.querySelectorAll('.item-card');
-    if(!cards.length){
-      l.push('(nenhum produto adicionado)');
-    }
-    cards.forEach(function(card, i){
-      const g = (cls) => card.querySelector(cls).value;
-      l.push('');
-      l.push((i+1) + '. ' + (g('.f-nome') || '(sem nome)'));
-      [
-        line('   NCM', g('.f-ncm')),
-        line('   Quantidade', g('.f-qtd')),
-        line('   Valor unitário (US$)', g('.f-valor')),
-        line('   Peso/dimensões', g('.f-peso')),
-        line('   Especificação', g('.f-spec')),
-        line('   Fornecedor', g('.f-fornecedor')),
-        line('   Finalidade', g('.f-finalidade')),
-      ].filter(Boolean).forEach(t => l.push(t));
-    });
+    l.push('');
+    l.push(buildProdutosTexto());
 
     l.push('');
     [
@@ -570,6 +585,38 @@
   });
 
   $('printBtn').addEventListener('click', function(){ window.print(); });
+
+  $('sheetBtn').addEventListener('click', function(){
+    if(!SHEETS_WEBHOOK_URL){
+      showToast('Planilha ainda não configurada (SHEETS_WEBHOOK_URL vazio).');
+      return;
+    }
+    const btn = $('sheetBtn');
+    btn.disabled = true;
+    const payload = new URLSearchParams({
+      razaoSocial: $('razaoSocial').value,
+      cnpj: $('cnpj').value,
+      empresasVinculadas: $('empresasVinculadas').value,
+      respNome: $('respNome').value,
+      respCpf: $('respCpf').value,
+      respEmail: $('respEmail').value,
+      respWhats: $('respWhats').value,
+      radar: radioLabel('radar', {sim:'Sim', nao:'Não', 'nao-sei':'Não sabe'}),
+      ecpf: radioLabel('ecpf', {sim:'Sim', nao:'Não'}),
+      regime: $('regime').value,
+      expImp: radioLabel('expImp', {sim:'Sim', nao:'Não, primeira vez'}),
+      canalPref: $('canalPref').value,
+      disponibilidade: $('disponibilidade').value,
+      obsEmpresa: $('obsEmpresa').value,
+      produtos: buildProdutosTexto(),
+      pesquisaMercado: $('pesquisaMercado').value,
+      urgencia: $('urgencia').value
+    });
+    fetch(SHEETS_WEBHOOK_URL, { method: 'POST', mode: 'no-cors', body: payload })
+      .then(function(){ showToast('Enviado para a planilha!'); })
+      .catch(function(){ showToast('Falha ao enviar — verifique sua conexão.'); })
+      .finally(function(){ btn.disabled = false; });
+  });
 
   refresh();
 })();
