@@ -176,7 +176,7 @@
     <div class="steps">
       <span class="step-pill active" id="pill1"><span class="n">1</span> Dados da empresa</span>
       <span class="step-pill" id="pill2"><span class="n">2</span> Produto(s) a importar</span>
-      <span class="step-pill" id="pill3"><span class="n">3</span> Resumo</span>
+      <span class="step-pill" id="pill3"><span class="n">3</span> Enviar</span>
     </div>
   </section>
 
@@ -316,37 +316,14 @@
     </div>
   </form>
 
-  <!-- RESUMO -->
+  <!-- ENVIO -->
   <div class="card">
-    <div class="card-h"><h2>Resumo para envio</h2></div>
     <div class="card-b">
-      <div class="out" id="resumoOut">Preencha os campos acima — o resumo aparece aqui.</div>
       <div class="actions">
         <button class="btn btn-primary" id="sheetBtn" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
-          Salvar na planilha
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          Enviar
         </button>
-        <button class="btn btn-ghost" id="copyBtn" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          Copiar resumo
-        </button>
-        <a class="btn btn-ghost" id="mailBtn" href="#">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
-          Enviar por e-mail
-        </a>
-        <a class="btn btn-ghost" id="waBtn" href="#" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.2-1.7-.8-2-.9-.3-.1-.5-.2-.7.2-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.2-.5.1-.2 0-.3 0-.5s-.7-1.7-1-2.3c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 2-1.4.2-.7.2-1.2.1-1.4l-.5-.2z"/><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2z"/></svg>
-          Enviar por WhatsApp
-        </a>
-        <button class="btn btn-ghost" id="printBtn" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          Imprimir / PDF
-        </button>
-      </div>
-      <div class="note">
-        "Salvar na planilha" envia os dados direto para a Google Sheets da Linkalt (veja
-        <code>SHEETS_WEBHOOK_URL</code> no início do script). Os demais botões não têm backend — só saem
-        do navegador do cliente quando ele clica em copiar, enviar e-mail ou WhatsApp.
       </div>
     </div>
   </div>
@@ -362,11 +339,7 @@
 (function(){
   "use strict";
 
-  // ---- ajuste estes dois valores para os contatos reais da Linkalt ----
-  const LINKALT_EMAIL = "comercial@linkalt.com.br";
-  const LINKALT_WHATSAPP = "5516997144581"; // formato internacional, só dígitos
-  // cole aqui a URL do Web App do Google Apps Script (veja instruções no README) para
-  // habilitar o botão "Salvar na planilha"; deixe vazio para desativar esse botão.
+  // cole aqui a URL do Web App do Google Apps Script para habilitar o botão "Enviar"
   const SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzh5nqFtBNF03LQasU_i4AbvEYSwPn8eA3tUte3QUY49gBWOY3dqKMtIdZRgYoWBlak/exec";
 
   const themeBtn = document.getElementById('themeBtn');
@@ -437,7 +410,7 @@
       div.remove();
       renumberItems();
       updateAddState();
-      buildResumo();
+      refresh();
     });
     return div;
   }
@@ -549,13 +522,6 @@
   }
 
   function refresh(){
-    const txt = buildResumo();
-    $('resumoOut').textContent = txt;
-    $('mailBtn').href = 'mailto:' + LINKALT_EMAIL +
-      '?subject=' + encodeURIComponent('Novo cliente — ' + ($('razaoSocial').value || 'sem nome')) +
-      '&body=' + encodeURIComponent(txt);
-    $('waBtn').href = 'https://wa.me/' + LINKALT_WHATSAPP + '?text=' + encodeURIComponent(txt);
-
     document.getElementById('pill1').classList.toggle('done', !!($('razaoSocial').value && $('respNome').value));
     document.getElementById('pill2').classList.toggle('done', cardsFilled());
   }
@@ -575,20 +541,9 @@
     setTimeout(() => toast.classList.remove('show'), 1800);
   }
 
-  $('copyBtn').addEventListener('click', function(){
-    const txt = buildResumo();
-    navigator.clipboard.writeText(txt).then(function(){
-      showToast('Resumo copiado!');
-    }).catch(function(){
-      showToast('Não foi possível copiar automaticamente.');
-    });
-  });
-
-  $('printBtn').addEventListener('click', function(){ window.print(); });
-
   $('sheetBtn').addEventListener('click', function(){
     if(!SHEETS_WEBHOOK_URL){
-      showToast('Planilha ainda não configurada (SHEETS_WEBHOOK_URL vazio).');
+      showToast('Envio ainda não configurado (SHEETS_WEBHOOK_URL vazio).');
       return;
     }
     const btn = $('sheetBtn');
@@ -613,7 +568,7 @@
       urgencia: $('urgencia').value
     });
     fetch(SHEETS_WEBHOOK_URL, { method: 'POST', mode: 'no-cors', body: payload })
-      .then(function(){ showToast('Enviado para a planilha!'); })
+      .then(function(){ showToast('Enviado com sucesso!'); })
       .catch(function(){ showToast('Falha ao enviar — verifique sua conexão.'); })
       .finally(function(){ btn.disabled = false; });
   });
