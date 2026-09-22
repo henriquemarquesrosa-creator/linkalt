@@ -447,78 +447,20 @@
   };
   const radioLabel = (name, map) => map[radioVal(name)] || '';
 
-  function line(label, value){
-    value = (value || '').toString().trim();
-    return value ? (label + ': ' + value) : null;
-  }
-
-  function buildProdutosTexto(){
-    const l = [];
-    const cards = itemsWrap.querySelectorAll('.item-card');
-    if(!cards.length){
-      l.push('(nenhum produto adicionado)');
-    }
-    cards.forEach(function(card, i){
-      const g = (cls) => card.querySelector(cls).value;
-      if(i > 0) l.push('');
-      l.push((i+1) + '. ' + (g('.f-nome') || '(sem nome)'));
-      [
-        line('   NCM', g('.f-ncm')),
-        line('   Quantidade', g('.f-qtd')),
-        line('   Valor unitário (US$)', g('.f-valor')),
-        line('   Peso/dimensões', g('.f-peso')),
-        line('   Especificação', g('.f-spec')),
-        line('   Fornecedor', g('.f-fornecedor')),
-        line('   Finalidade', g('.f-finalidade')),
-      ].filter(Boolean).forEach(t => l.push(t));
+  function collectProdutos(){
+    const g = (card, cls) => card.querySelector(cls).value.trim();
+    return Array.from(itemsWrap.querySelectorAll('.item-card')).map(function(card){
+      return {
+        nome: g(card, '.f-nome'),
+        ncm: g(card, '.f-ncm'),
+        qtd: g(card, '.f-qtd'),
+        valor: g(card, '.f-valor'),
+        peso: g(card, '.f-peso'),
+        spec: g(card, '.f-spec'),
+        fornecedor: g(card, '.f-fornecedor'),
+        finalidade: g(card, '.f-finalidade'),
+      };
     });
-    return l.join('\n');
-  }
-
-  function buildResumo(){
-    const l = [];
-    l.push('*FORMULÁRIO LINKALT — DADOS DO CLIENTE*');
-    l.push('');
-    l.push('— Empresa —');
-    [
-      line('Razão social', $('razaoSocial').value),
-      line('CNPJ', $('cnpj').value),
-      line('Outras empresas possíveis', $('empresasVinculadas').value),
-    ].filter(Boolean).forEach(t => l.push(t));
-
-    l.push('');
-    l.push('— Responsável —');
-    [
-      line('Nome', $('respNome').value),
-      line('CPF', $('respCpf').value),
-      line('E-mail', $('respEmail').value),
-      line('WhatsApp', $('respWhats').value),
-    ].filter(Boolean).forEach(t => l.push(t));
-
-    l.push('');
-    l.push('— Situação —');
-    [
-      line('RADAR habilitado', radioLabel('radar', {sim:'Sim', nao:'Não', 'nao-sei':'Não sabe'})),
-      line('E-CPF emitido', radioLabel('ecpf', {sim:'Sim', nao:'Não'})),
-      line('Regime tributário', $('regime').value),
-      line('Já importou antes', radioLabel('expImp', {sim:'Sim', nao:'Não, primeira vez'})),
-      line('Canal preferido', $('canalPref').value),
-      line('Disponibilidade', $('disponibilidade').value),
-      line('Observações', $('obsEmpresa').value),
-    ].filter(Boolean).forEach(t => l.push(t));
-
-    l.push('');
-    l.push('*PRODUTOS A IMPORTAR* (até 5 por simulação)');
-    l.push('');
-    l.push(buildProdutosTexto());
-
-    l.push('');
-    [
-      line('Pesquisa de mercado', $('pesquisaMercado').value),
-      line('Prazo desejado', $('urgencia').value),
-    ].filter(Boolean).forEach(t => l.push(t));
-
-    return l.join('\n');
   }
 
   function refresh(){
@@ -573,7 +515,7 @@
       canalPref: $('canalPref').value,
       disponibilidade: $('disponibilidade').value,
       obsEmpresa: $('obsEmpresa').value,
-      produtos: buildProdutosTexto(),
+      produtos: JSON.stringify(collectProdutos()),
       pesquisaMercado: $('pesquisaMercado').value,
       urgencia: $('urgencia').value
     });
